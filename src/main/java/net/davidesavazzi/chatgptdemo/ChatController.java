@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -30,6 +31,9 @@ public class ChatController {
 
     @Value("classpath:/prompts/youtube.st")
     private Resource ytPromptResource;
+
+    @Value("classpath:/prompts/stuff-it.st")
+    private Resource stuffItPromptResource;
 
     @Autowired
     public ChatController(ChatClient.Builder builder) {
@@ -121,5 +125,24 @@ public class ChatController {
                 .call().chatResponse();
 
         return converter.convert(response.getResult().getOutput().getContent());
+    }
+
+    @GetMapping("/stuff-test")
+    public String getBtcPrice(@RequestParam(value = "stuffit", defaultValue = "false") boolean stuffit) {
+        var promptTemplate = new PromptTemplate(stuffItPromptResource );
+
+        var params = new HashMap<String,Object>();
+        params.put("question", "What max value BTC reached in October 2024?");
+        if (stuffit) {
+            params.put("context", "BTC in October 2024 reached an all time high of 98k $");
+        } else {
+            params.put("context", "");
+        }
+
+        var message = promptTemplate.createMessage(params);
+        var response = builder.build()
+                .prompt(new Prompt(message))
+                .call().chatResponse();
+        return response.getResult().getOutput().getContent();
     }
 }
