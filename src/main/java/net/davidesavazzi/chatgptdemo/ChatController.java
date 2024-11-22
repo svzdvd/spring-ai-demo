@@ -8,6 +8,7 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.converter.ListOutputConverter;
+import org.springframework.ai.converter.MapOutputConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.convert.support.DefaultConversionService;
@@ -72,9 +73,9 @@ public class ChatController {
         return response.getResult().getOutput().getContent();
     }
 
-    @GetMapping("/youtube-parsed")
-    public String chatWithOutputParser(@RequestParam(value = "genre", defaultValue = "tech") String genre ) {
-        var promptTemplate = new PromptTemplate(ytPromptResource);
+    @GetMapping("/youtube-list")
+    public String chatWithListOutputParser(@RequestParam(value = "genre", defaultValue = "tech") String genre ) {
+        var promptTemplate = new PromptTemplate("List 10 of the most popular YouTube channels in the {genre} genre");
         var message = promptTemplate.createMessage(Map.of("genre", genre));
 
         ListOutputConverter converter = new ListOutputConverter(new DefaultConversionService());
@@ -86,5 +87,21 @@ public class ChatController {
                 .call().chatResponse();
         var items = converter.convert(response.getResult().getOutput().getContent());
         return Objects.requireNonNull(items).toString();
+    }
+
+    @GetMapping("/youtube-map")
+    public String chatWithMapOutputParser(@RequestParam(value = "genre", defaultValue = "tech") String genre ) {
+        var promptTemplate = new PromptTemplate(ytPromptResource);
+        var message = promptTemplate.createMessage(Map.of("genre", genre));
+
+        MapOutputConverter converter = new MapOutputConverter();
+        var formatMessage = new SystemMessage(converter.getFormat());
+
+        var prompt = new Prompt(List.of(message, formatMessage));
+        var response = builder.build()
+                .prompt(prompt)
+                .call().chatResponse();
+
+        return response.getResult().getOutput().getContent();
     }
 }
