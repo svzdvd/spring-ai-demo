@@ -7,8 +7,10 @@ import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
+import org.springframework.ai.converter.ListOutputConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.core.io.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 public class ChatController {
@@ -67,5 +70,21 @@ public class ChatController {
                 .prompt(prompt)
                 .call().chatResponse();
         return response.getResult().getOutput().getContent();
+    }
+
+    @GetMapping("/youtube-parsed")
+    public String chatWithOutputParser(@RequestParam(value = "genre", defaultValue = "tech") String genre ) {
+        var promptTemplate = new PromptTemplate(ytPromptResource);
+        var message = promptTemplate.createMessage(Map.of("genre", genre));
+
+        ListOutputConverter converter = new ListOutputConverter(new DefaultConversionService());
+        var formatMessage = new SystemMessage(converter.getFormat());
+
+        var prompt = new Prompt(List.of(message, formatMessage));
+        var response = builder.build()
+                .prompt(prompt)
+                .call().chatResponse();
+        var items = converter.convert(response.getResult().getOutput().getContent());
+        return Objects.requireNonNull(items).toString();
     }
 }
