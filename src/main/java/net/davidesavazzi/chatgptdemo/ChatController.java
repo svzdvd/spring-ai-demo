@@ -7,6 +7,7 @@ import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
+import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.converter.ListOutputConverter;
 import org.springframework.ai.converter.MapOutputConverter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -103,5 +104,22 @@ public class ChatController {
                 .call().chatResponse();
 
         return response.getResult().getOutput().getContent();
+    }
+
+    @GetMapping("/books-by-author")
+    public Author getBooksByAuthor(@RequestParam(value = "author", defaultValue = "Philip Dick") String author) {
+        var promptTemplate = new PromptTemplate("List the books written by the author {author}. " +
+                "If you aren't positive that a book belongs to this author please don't include it.");
+        var message = promptTemplate.createMessage(Map.of("author", author));
+
+        var converter = new BeanOutputConverter<>(Author.class);
+        var formatMessage = new SystemMessage(converter.getFormat());
+
+        var prompt = new Prompt(List.of(message, formatMessage));
+        var response = builder.build()
+                .prompt(prompt)
+                .call().chatResponse();
+
+        return converter.convert(response.getResult().getOutput().getContent());
     }
 }
