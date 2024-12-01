@@ -56,7 +56,7 @@ public class ChatController {
     }
 
     @GetMapping("/youtube")
-    public String chatWithPrompt(@RequestParam(value = "genre", defaultValue = "tech") String genre ) {
+    public String chatWithPromptTemplate(@RequestParam(value = "genre", defaultValue = "tech") String genre ) {
         var promptTemplate = new PromptTemplate(ytPromptResource);
         var prompt = promptTemplate.create(Map.of("genre", genre));
 
@@ -79,7 +79,7 @@ public class ChatController {
     }
 
     @GetMapping("/youtube-list")
-    public String chatWithListOutputParser(@RequestParam(value = "genre", defaultValue = "tech") String genre ) {
+    public String chatWithListOutputConverter(@RequestParam(value = "genre", defaultValue = "tech") String genre) {
         var promptTemplate = new PromptTemplate("List 10 of the most popular YouTube channels in the {genre} genre");
         var message = promptTemplate.createMessage(Map.of("genre", genre));
 
@@ -95,7 +95,7 @@ public class ChatController {
     }
 
     @GetMapping("/youtube-map")
-    public String chatWithMapOutputParser(@RequestParam(value = "genre", defaultValue = "tech") String genre ) {
+    public String chatWithMapOutputConverter(@RequestParam(value = "genre", defaultValue = "tech") String genre ) {
         var promptTemplate = new PromptTemplate(ytPromptResource);
         var message = promptTemplate.createMessage(Map.of("genre", genre));
 
@@ -111,7 +111,7 @@ public class ChatController {
     }
 
     @GetMapping("/books-by-author")
-    public Author getBooksByAuthor(@RequestParam(value = "author", defaultValue = "Philip Dick") String author) {
+    public Author chatWitBeanOutputConverter(@RequestParam(value = "author", defaultValue = "Philip Dick") String author) {
         var promptTemplate = new PromptTemplate("List the books written by the author {author}. " +
                 "If you aren't positive that a book belongs to this author please don't include it.");
         var message = promptTemplate.createMessage(Map.of("author", author));
@@ -128,7 +128,7 @@ public class ChatController {
     }
 
     @GetMapping("/stuff-test")
-    public String getBtcPrice(@RequestParam(value = "stuffit", defaultValue = "false") boolean stuffit) {
+    public String chatWithPromptStuffing(@RequestParam(value = "stuffit", defaultValue = "false") boolean stuffit) {
         var promptTemplate = new PromptTemplate(stuffItPromptResource );
 
         var params = new HashMap<String,Object>();
