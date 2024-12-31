@@ -10,6 +10,8 @@ import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.converter.ListOutputConverter;
 import org.springframework.ai.converter.MapOutputConverter;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.convert.support.DefaultConversionService;
@@ -28,6 +30,7 @@ public class ChatController {
 
     private static final Logger log = LoggerFactory.getLogger(ChatController.class);
     private final ChatClient.Builder builder;
+    private final VectorStore vectorStore;
 
     @Value("classpath:/prompts/youtube.st")
     private Resource ytPromptResource;
@@ -35,9 +38,13 @@ public class ChatController {
     @Value("classpath:/prompts/stuff-it.st")
     private Resource stuffItPromptResource;
 
+    @Value("classpath:/prompts/rag-prompt-template.st")
+    private Resource ragPromptResource;
+
     @Autowired
-    public ChatController(ChatClient.Builder builder) {
+    public ChatController(ChatClient.Builder builder, VectorStore vectorStore) {
         this.builder = builder;
+        this.vectorStore = vectorStore;
     }
 
     @GetMapping("/chat")
@@ -56,7 +63,7 @@ public class ChatController {
     }
 
     @GetMapping("/youtube")
-    public String chatWithPromptTemplate(@RequestParam(value = "genre", defaultValue = "tech") String genre ) {
+    public String chatWithPromptTemplate(@RequestParam(value = "genre", defaultValue = "tech") String genre) {
         var promptTemplate = new PromptTemplate(ytPromptResource);
         var prompt = promptTemplate.create(Map.of("genre", genre));
 
@@ -129,7 +136,7 @@ public class ChatController {
 
     @GetMapping("/stuff-test")
     public String chatWithPromptStuffing(@RequestParam(value = "stuffit", defaultValue = "false") boolean stuffit) {
-        var promptTemplate = new PromptTemplate(stuffItPromptResource );
+        var promptTemplate = new PromptTemplate(stuffItPromptResource);
 
         var params = new HashMap<String,Object>();
         params.put("question", "What max value BTC reached in October 2024?");
@@ -142,6 +149,25 @@ public class ChatController {
         var message = promptTemplate.createMessage(params);
         var response = builder.build()
                 .prompt(new Prompt(message))
+                .call().chatResponse();
+        return response.getResult().getOutput().getContent();
+    }
+
+    @GetMapping("/presidential")
+    public String chatAbout2024PresidentialElections(@RequestParam(value = "question", defaultValue = "Who won the 2024 presidential elections?") String question) {
+        var similarDocuments = vectorStore.similaritySearch(question);
+        var contentList = similarDocuments.stream().map(Document::getContent).toList();
+
+        var promptTemplate = new PromptTemplate(ragPromptResource);
+
+        var promptParameters = new HashMap<String,Object>();
+        promptParameters.put("input", question);
+        promptParameters.put("documents", String.join("\n", contentList));
+
+        var prompt = promptTemplate.create(promptParameters);
+
+        var response = builder.build()
+                .prompt(prompt)
                 .call().chatResponse();
         return response.getResult().getOutput().getContent();
     }
